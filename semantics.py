@@ -1,12 +1,13 @@
 #! /usr/bin/python3
 #Authors:        Gavin Grossman 931000651 & Spencer Bao 931001734
-#Date Created:  2/20/2020
+#Date Created:  2/25/2020
 
 import re, sys, string
 
 debug = False
 dict = { }
 tokens = [ ]
+statement_list = []
 
 class Statement( object ): #statement superclass
 	def __str__(self):
@@ -40,6 +41,10 @@ class AssignStatement( Statement ):
 	def __str__(self):
 		return "= " + str(self.identifier) + " " + str(self.expr)
 
+	# def meaning(self, state):
+	# 	state[self.indentifier] = self.expr.value(state)
+ 	# 	return state #State()
+
 class BlockStatement( Statement ):
 	def __init__(self, stmtList):
 		self.stmtList = stmtList
@@ -49,6 +54,9 @@ class BlockStatement( Statement ):
 		for stmt in self.stmtList:
 			print_list += str(stmt) + "\n"
 		return print_list
+
+	def meaning(self, state):
+		return state
 		
 
 #  Expression class and its subclasses
@@ -65,12 +73,27 @@ class BinaryExpr( Expression ): # creates a binary tree since the expressions ca
 	def __str__(self):
 		return str(self.op) + " " + str(self.left) + " " + str(self.right)
 
+	def value(self, state):
+		left = self.left.value(state)
+		right = self.right.value(state)
+		if self.op == "+":
+			return left + right
+		if self.op == "-":
+			return left - right
+		if self.op == "*":
+			return left * right
+		if self.op == "/":
+			return left / right
+
 class Number( Expression ):
 	def __init__(self, value):
 		self.value = value
 		
 	def __str__(self):
 		return str(self.value)
+
+	def value(self, state):
+		return self.value
 
 class String( Expression ):
 	def __init__(self, string):
@@ -86,8 +109,6 @@ class VarRef( Expression ):
 	def __str__(self):
 		return str(self.identifier)
 
-###########################
-
 def error( msg ):
 	#print msg
 	sys.exit(msg)
@@ -100,8 +121,6 @@ def match(matchtok):
 	if (tok != matchtok): error("Expecting "+ matchtok)
 	tokens.next( )
 	return tok
-	
-##### ADD LOGIC #####
 
 def factor( ):
 	""" factor     = number | string | ident |  "(" expression ")" """
@@ -134,7 +153,6 @@ def factor( ):
 	error("Invalid operand")
 	return
 
-########################
 
 def term( ):
 	""" term    = factor { ('*' | '/') factor } """
@@ -164,8 +182,6 @@ def addExpr( ):
 		left = BinaryExpr(tok, left, right)
 		tok = tokens.peek( )
 	return left
-
-##### BUILD PARSE ROUTINES #####
 
 def relationalExpr( ):
 	""" relationalExpr = addExpr [ relation addExpr ] """
@@ -297,16 +313,16 @@ def block(  ):
 	match("~")
 	return BlockStatement(stmtList)
 
-################################
 
 def parse( text ) :
 	global tokens
 	tokens = Lexer( text )
 	# expr = addExpr( )
 	# print (str(expr))
-	stmtlist = parseStmtList( tokens )
-	print (BlockStatement(stmtlist))
+	statement_list = parseStmtList( tokens )
+	print (BlockStatement(statement_list))
 	return
+
 
 
 # Lexer, a private class that represents lists of tokens from a Gee
@@ -424,6 +440,77 @@ def mklines(filename):
 	return lines
 
 
+def meaning( text ) :
+	global tokens
+	tokens = Lexer( text )
+	statement_list = parseStmtList( tokens )
+	decpart = State()
+	for statement in statement_list:
+		if isinstance(statement, AssignStatement):
+			decpart.put(str(statement.identifier), "undef")
+
+	print(decpart)
+
+	body = BlockStatement(statement_list)
+
+	return body.meaning(decpart) #meaning(statement, state)
+
+# def initial_state(declarations):
+# 	state = State()
+# 	for d in declarations:
+# 		state.put(d, Value.mk_value(declarations[d]))
+# 	return state
+
+class State(): # a dictionary that holds variables which map to its state
+	def __init__(self):
+		self.state = {}
+
+	def put(self, variable, value):
+		self.state[variable] = value
+
+	def __str__(self):
+		return str(self.state)
+
+
+
+
+# class Declarations( State): # dictionary with initalizations of the variables
+# 	def __init__(self):
+# 		# access the stmtlist created before and take all the assignStatements and make a dictionary
+# 		# self.dict = {}
+# 		# for statement in statement_list:
+# 		# 	if isinstance(statement, AssignStatement):
+# 		# 		self.dict[statement.identifier] = expr
+
+# 		# file = open(sys.argv[1], "r")
+
+# 	def __str__(self):
+# 		return self.dict
+
+# class Declaration(Declarations):
+# 	def __init__(self, variable, type):
+# 		self.variable = variable
+# 		self.type = type
+
+# 	def __str__(self):
+# 		return "<" + self.variable + ", " + self.type + ">"
+
+# class Program():
+# 	def __init__(self, decpart, body):
+# 		self.decpart = decpart
+# 		self.body = body
+
+# 	def meaning(self):
+# 		#Program = Declaration decpart; Statement body
+# 		# self.decpart = Declaration()
+# 		# self.body = Statement()
+# 		return Statement(program.body, initial_state(program.decpart)) # M(statement body, state declaration)
+
+
+
+
+
+
 
 def main():
 	"""main program for testing"""
@@ -437,6 +524,7 @@ def main():
 		print ("Usage:  %s filename" % sys.argv[0])
 		return
 	parse("".join(mklines(sys.argv[1+ct])))
+	meaning("".join(mklines(sys.argv[1+ct])))
 	return
 
 
