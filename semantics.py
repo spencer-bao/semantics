@@ -41,9 +41,13 @@ class AssignStatement( Statement ):
 	def __str__(self):
 		return "= " + str(self.identifier) + " " + str(self.expr)
 
-	# def meaning(self, state):
-	# 	state[self.indentifier] = self.expr.value(state)
- 	# 	return state #State()
+	def meaning(self, state):
+		# print(str(self.identifier) + ": " + str(type(self.identifier)))
+		# print(str(self.expr) + ": " + str(type(self.expr)))
+		# state[str(self.identifier)] = self.expr.val()
+		
+		state.put(str(self.identifier), self.expr.val())
+		return state #State()
 
 class BlockStatement( Statement ):
 	def __init__(self, stmtList):
@@ -56,7 +60,26 @@ class BlockStatement( Statement ):
 		return print_list
 
 	def meaning(self, state):
+		for stmt in self.stmtList:
+			# print(str(stmt.expr) + "i")
+			if (isinstance(stmt, SkipStatement) or isinstance(stmt, AssignStatement) or isinstance(stmt, BlockStatement) 
+			or isinstance(stmt, WhileStatement) or isinstance(stmt, IfStatement)):
+				state = stmt.meaning(state)
+				# return state
+			else:
+				raise ValueError("Invalid statement.")
 		return state
+			
+
+		
+
+class SkipStatement(Statement):
+	def __init__(self):
+		return ""
+	
+	def meaning(self, state):
+		return state
+
 		
 
 #  Expression class and its subclasses
@@ -73,9 +96,9 @@ class BinaryExpr( Expression ): # creates a binary tree since the expressions ca
 	def __str__(self):
 		return str(self.op) + " " + str(self.left) + " " + str(self.right)
 
-	def value(self, state):
-		left = self.left.value(state)
-		right = self.right.value(state)
+	def val(self):
+		left = self.left.val()
+		right = self.right.val()
 		if self.op == "+":
 			return left + right
 		if self.op == "-":
@@ -92,7 +115,7 @@ class Number( Expression ):
 	def __str__(self):
 		return str(self.value)
 
-	def value(self, state):
+	def val(self):
 		return self.value
 
 class String( Expression ):
@@ -102,6 +125,9 @@ class String( Expression ):
 	def __str__(self):
 		return str(self.string)
     
+	def value(self):
+		return self.string
+
 class VarRef( Expression ):
 	def __init__(self, identifier):
 		self.identifier = identifier
@@ -319,9 +345,9 @@ def parse( text ) :
 	tokens = Lexer( text )
 	# expr = addExpr( )
 	# print (str(expr))
+	global statement_list
 	statement_list = parseStmtList( tokens )
-	print (BlockStatement(statement_list))
-	return
+	return BlockStatement(statement_list)
 
 
 
@@ -441,12 +467,14 @@ def mklines(filename):
 
 
 def meaning( text ) :
-	global tokens
-	tokens = Lexer( text )
-	statement_list = parseStmtList( tokens )
+	# global tokens
+	# tokens = Lexer( text )
+	# statement_list = parseStmtList( tokens )
+	
+	global statement_list
 	decpart = State()
-	for statement in statement_list:
-		if isinstance(statement, AssignStatement):
+	for statement in statement_list: 
+		if isinstance(statement, AssignStatement): # looking for the the declarations and setting initial state
 			decpart.put(str(statement.identifier), "undef")
 
 	print(decpart)
@@ -470,6 +498,8 @@ class State(): # a dictionary that holds variables which map to its state
 
 	def __str__(self):
 		return str(self.state)
+
+	# def add(self, variable, new_val): #update variable with new value
 
 
 
@@ -507,11 +537,6 @@ class State(): # a dictionary that holds variables which map to its state
 # 		return Statement(program.body, initial_state(program.decpart)) # M(statement body, state declaration)
 
 
-
-
-
-
-
 def main():
 	"""main program for testing"""
 	global debug
@@ -524,7 +549,7 @@ def main():
 		print ("Usage:  %s filename" % sys.argv[0])
 		return
 	parse("".join(mklines(sys.argv[1+ct])))
-	meaning("".join(mklines(sys.argv[1+ct])))
+	print(meaning("".join(mklines(sys.argv[1+ct]))))
 	return
 
 
