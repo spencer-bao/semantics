@@ -18,7 +18,15 @@ class State(): # a dictionary that holds variables which map to its state
 		self.state[variable] = value
 
 	def __str__(self):
-		return str(self.state)
+		print_state = "{"
+		comma_counter = 0
+		for variable in self.state:
+			print_state += ("<" + variable + ", " + self.state[variable] + ">")
+			if comma_counter != len(self.state) - 1:
+				print_state += ", "
+				comma_counter += 1
+		print_state += "}"	
+		return print_state
 
 	def val(self, ident):
 		return self.state[ident]
@@ -33,17 +41,16 @@ def meaning( text ) :
 		if isinstance(statement, AssignStatement):
 			decpart.put(str(statement.identifier), "undef")
 
-	print(decpart)
+	# print(decpart)
 
 	body = BlockStatement(statement_list)
 
 	for stmt in body.stmtList:
-		if isinstance(stmt, AssignStatement):
+		if (isinstance(stmt, AssignStatement) or isinstance(stmt, WhileStatement) or
+			isinstance(stmt, IfStatement) or isinstance(stmt, BlockStatement)):
 			stmt.meaning(decpart)
-		if isinstance(stmt, WhileStatement):
-			stmt.meaning(decpart)
-		if isinstance(stmt, IfStatement):
-			stmt.meaning(decpart)
+		else:
+			raise ValueError("Invalid Statement")
 		
 
 	print(decpart)
