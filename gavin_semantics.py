@@ -21,7 +21,7 @@ class State(): # a dictionary that holds variables which map to its state
 		print_state = "{"
 		comma_counter = 0
 		for variable in self.state:
-			print_state += ("<" + variable + ", " + self.state[variable] + ">")
+			print_state += ("<" + str(variable) + ", " + str(self.state[variable]) + ">")
 			if comma_counter != len(self.state) - 1:
 				print_state += ", "
 				comma_counter += 1
